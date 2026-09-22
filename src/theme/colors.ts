@@ -1,6 +1,7 @@
 // Paleta extraída de logo.png y forma1.png (muestreo de píxeles real, no aproximado).
 export const colors = {
-  primary: '#0EA5FF',
+  primary: '#146EFE', // azul de botones y estados activos (nav, CTAs)
+  brandBlue: '#0EA5FF', // azul del wordmark/logo ("Hago")
   secondary: '#1FE0C2',
 
   accentOrange: '#F5B23A',
@@ -15,6 +16,7 @@ export const colors = {
   textSecondary: '#8C94A6',
   textOnDark: '#FFFFFF',
   textOnDarkSecondary: '#A9B4C8',
+  inactive: '#5B6B85', // íconos/labels inactivos (nav)
 
   border: '#E5E9F0',
   success: '#16A34A',
