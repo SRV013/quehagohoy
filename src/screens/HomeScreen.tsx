@@ -1,14 +1,14 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 
 import BottomNav from '../components/BottomNav';
+import Header from '../components/Header';
 import { colors } from '../theme/colors';
 
 export default function HomeScreen() {
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>QuéHagoHoy</Text>
-      </View>
+      <Header />
+      <View style={styles.content} />
       <BottomNav />
     </View>
   );
@@ -21,12 +21,5 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.textOnDark,
   },
 });
