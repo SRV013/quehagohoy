@@ -28,6 +28,8 @@ export const colors = {
     sky: '#C2ECFE',
     lavender: '#DBD8FE',
     yellow: '#FEE995',
+    sage: '#DFF0E3',
+    orchid: '#FADFF0',
   },
 } as const;
 
