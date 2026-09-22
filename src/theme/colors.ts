@@ -19,7 +19,7 @@ export const colors = {
   inactive: '#5B6B85', // íconos/labels inactivos (nav)
 
   border: '#E5E9F0',
-  success: '#16A34A',
+  success: '#006134', // tag "Recomendado"
 
   category: {
     peach: '#FCE5C6',
