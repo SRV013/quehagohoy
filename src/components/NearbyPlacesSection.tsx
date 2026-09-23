@@ -49,10 +49,18 @@ export default function NearbyPlacesSection({ query = '' }: NearbyPlacesSectionP
           return true;
         });
 
-        const result = await generateRecommendations(query, candidates);
-        if (!cancelled) setGroups(result);
+        try {
+          const result = await generateRecommendations(query, candidates);
+          if (!cancelled) setGroups(result.length > 0 ? result : [{ title: `Resultados para "${query}"`, places: candidates }]);
+        } catch (aiError) {
+          // Gemini puede fallar por demanda alta u otros motivos transitorios: mostramos
+          // los lugares reales sin agrupar en vez de dejar la búsqueda vacía.
+          console.warn('generateRecommendations failed, falling back to plain results', aiError);
+          if (!cancelled) setGroups([{ title: `Resultados para "${query}"`, places: candidates }]);
+        }
       } catch (err) {
         if (cancelled) return;
+        console.warn('NearbyPlacesSection fetch failed', err);
         if (err instanceof Error && (err.message === 'MISSING_API_KEY' || err.message.startsWith('PLACES_API'))) {
           setError('Falta configurar alguna API key (archivo .env).');
         } else {
