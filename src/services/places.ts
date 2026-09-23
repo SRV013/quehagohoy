@@ -14,6 +14,25 @@ const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
 
 const INCLUDED_TYPES = ['restaurant', 'bar', 'cafe', 'park', 'tourist_attraction', 'night_club'];
 
+const FIELD_MASK =
+  'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.photos';
+
+function mapPlace(place: any, fallbackLat: number, fallbackLng: number): NearbyPlace {
+  return {
+    id: place.id,
+    name: place.displayName?.text ?? 'Sin nombre',
+    address: place.formattedAddress ?? '',
+    rating: place.rating ?? null,
+    userRatingCount: place.userRatingCount ?? null,
+    types: place.types ?? [],
+    latitude: place.location?.latitude ?? fallbackLat,
+    longitude: place.location?.longitude ?? fallbackLng,
+    photoUrl: place.photos?.[0]
+      ? `https://places.googleapis.com/v1/${place.photos[0].name}/media?maxWidthPx=400&key=${API_KEY}`
+      : null,
+  };
+}
+
 export async function fetchNearbyPlaces(
   latitude: number,
   longitude: number,
@@ -28,8 +47,7 @@ export async function fetchNearbyPlaces(
     headers: {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': API_KEY,
-      'X-Goog-FieldMask':
-        'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.photos',
+      'X-Goog-FieldMask': FIELD_MASK,
     },
     body: JSON.stringify({
       includedTypes: INCLUDED_TYPES,
@@ -52,21 +70,47 @@ export async function fetchNearbyPlaces(
   const data = await response.json();
   const places = data.places ?? [];
 
-  return places.map(
-    (place: any): NearbyPlace => ({
-      id: place.id,
-      name: place.displayName?.text ?? 'Sin nombre',
-      address: place.formattedAddress ?? '',
-      rating: place.rating ?? null,
-      userRatingCount: place.userRatingCount ?? null,
-      types: place.types ?? [],
-      latitude: place.location?.latitude ?? latitude,
-      longitude: place.location?.longitude ?? longitude,
-      photoUrl: place.photos?.[0]
-        ? `https://places.googleapis.com/v1/${place.photos[0].name}/media?maxWidthPx=400&key=${API_KEY}`
-        : null,
+  return places.map((place: any) => mapPlace(place, latitude, longitude));
+}
+
+export async function searchPlacesByText(
+  query: string,
+  latitude: number,
+  longitude: number,
+  radiusMeters = 8000,
+): Promise<NearbyPlace[]> {
+  if (!API_KEY) {
+    throw new Error('MISSING_API_KEY');
+  }
+
+  const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': API_KEY,
+      'X-Goog-FieldMask': FIELD_MASK,
+    },
+    body: JSON.stringify({
+      textQuery: query,
+      maxResultCount: 20,
+      locationBias: {
+        circle: {
+          center: { latitude, longitude },
+          radius: radiusMeters,
+        },
+      },
     }),
-  );
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`PLACES_API_ERROR: ${response.status} ${body}`);
+  }
+
+  const data = await response.json();
+  const places = data.places ?? [];
+
+  return places.map((place: any) => mapPlace(place, latitude, longitude));
 }
 
 export function distanceInKm(lat1: number, lon1: number, lat2: number, lon2: number): number {

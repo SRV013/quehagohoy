@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useLocation } from '../hooks/useLocation';
-import { distanceInKm, fetchNearbyPlaces, NearbyPlace } from '../services/places';
+import { distanceInKm, fetchNearbyPlaces, NearbyPlace, searchPlacesByText } from '../services/places';
 import { colors } from '../theme/colors';
 
 const TYPE_LABELS: Record<string, string> = {
@@ -20,7 +20,11 @@ function typeLabel(types: string[]): string {
   return match ? TYPE_LABELS[match] : 'Lugar';
 }
 
-export default function NearbyPlacesSection() {
+type NearbyPlacesSectionProps = {
+  query?: string;
+};
+
+export default function NearbyPlacesSection({ query = '' }: NearbyPlacesSectionProps) {
   const location = useLocation();
   const [places, setPlaces] = useState<NearbyPlace[]>([]);
   const [loadingPlaces, setLoadingPlaces] = useState(false);
@@ -35,7 +39,11 @@ export default function NearbyPlacesSection() {
     setLoadingPlaces(true);
     setError(null);
 
-    fetchNearbyPlaces(location.latitude, location.longitude)
+    const request = query
+      ? searchPlacesByText(query, location.latitude, location.longitude)
+      : fetchNearbyPlaces(location.latitude, location.longitude);
+
+    request
       .then((results) => {
         if (!cancelled) setPlaces(results);
       })
@@ -54,11 +62,11 @@ export default function NearbyPlacesSection() {
     return () => {
       cancelled = true;
     };
-  }, [location.status, location.latitude, location.longitude]);
+  }, [location.status, location.latitude, location.longitude, query]);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Cerca tuyo ahora</Text>
+      <Text style={styles.title}>{query ? `Resultados para "${query}"` : 'Cerca tuyo ahora'}</Text>
 
       {location.status === 'loading' && (
         <View style={styles.centered}>
@@ -89,7 +97,9 @@ export default function NearbyPlacesSection() {
 
       {location.status === 'granted' && !loadingPlaces && !error && places.length === 0 && (
         <View style={styles.centered}>
-          <Text style={styles.helperText}>No encontramos lugares cerca tuyo.</Text>
+          <Text style={styles.helperText}>
+            {query ? `No encontramos resultados para "${query}".` : 'No encontramos lugares cerca tuyo.'}
+          </Text>
         </View>
       )}
 

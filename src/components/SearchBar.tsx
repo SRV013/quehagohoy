@@ -1,18 +1,36 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { colors } from '../theme/colors';
 
-export default function SearchBar() {
+type SearchBarProps = {
+  value: string;
+  onChangeText: (text: string) => void;
+  onSubmit: () => void;
+};
+
+export default function SearchBar({ value, onChangeText, onSubmit }: SearchBarProps) {
   return (
     <View style={styles.container}>
-      <Ionicons name="search" size={20} color={colors.textPrimary} />
+      <Pressable onPress={onSubmit} hitSlop={8}>
+        <Ionicons name="search" size={20} color={colors.textPrimary} />
+      </Pressable>
       <TextInput
         style={styles.input}
         placeholder="¿Qué te gustaría hacer hoy?"
         placeholderTextColor={colors.textSecondary}
+        value={value}
+        onChangeText={onChangeText}
+        onSubmitEditing={onSubmit}
+        returnKeyType="search"
       />
-      <Ionicons name="options-outline" size={20} color={colors.textPrimary} />
+      {value.length > 0 ? (
+        <Pressable onPress={() => onChangeText('')} hitSlop={8}>
+          <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+        </Pressable>
+      ) : (
+        <Ionicons name="options-outline" size={20} color={colors.textPrimary} />
+      )}
     </View>
   );
 }

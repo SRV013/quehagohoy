@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ScrollView, View, StyleSheet } from 'react-native';
 
 import BottomNav from '../components/BottomNav';
@@ -13,17 +14,27 @@ import SearchBar from '../components/SearchBar';
 import { colors } from '../theme/colors';
 
 export default function HomeScreen() {
+  const [searchText, setSearchText] = useState('');
+  const [activeQuery, setActiveQuery] = useState('');
+
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <Header />
         <HeroHeading />
         <FilterBar />
-        <SearchBar />
+        <SearchBar
+          value={searchText}
+          onChangeText={(text) => {
+            setSearchText(text);
+            if (text === '') setActiveQuery('');
+          }}
+          onSubmit={() => setActiveQuery(searchText.trim())}
+        />
         <CategoryList />
         <View style={styles.body}>
           <PlansSection />
-          <NearbyPlacesSection />
+          <NearbyPlacesSection query={activeQuery} />
           <ExperiencesSection />
           <PromoBanner />
         </View>
