@@ -6,6 +6,7 @@ import ExperiencesSection from '../components/ExperiencesSection';
 import FilterBar from '../components/FilterBar';
 import Header from '../components/Header';
 import HeroHeading from '../components/HeroHeading';
+import NearbyPlacesSection from '../components/NearbyPlacesSection';
 import PlansSection from '../components/PlansSection';
 import PromoBanner from '../components/PromoBanner';
 import SearchBar from '../components/SearchBar';
@@ -22,6 +23,7 @@ export default function HomeScreen() {
         <CategoryList />
         <View style={styles.body}>
           <PlansSection />
+          <NearbyPlacesSection />
           <ExperiencesSection />
           <PromoBanner />
         </View>

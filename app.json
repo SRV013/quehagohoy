@@ -20,6 +20,14 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "QuéHagoHoy usa tu ubicación para mostrarte lugares cercanos."
+        }
+      ]
+    ]
   }
 }
