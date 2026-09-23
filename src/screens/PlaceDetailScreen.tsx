@@ -42,19 +42,21 @@ export default function PlaceDetailScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
 
-    fetchPlaceDetails(place.id)
-      .then((result) => {
+    const run = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await fetchPlaceDetails(place.id);
         if (!cancelled) setDetails(result);
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setError('No pudimos cargar los detalles de este lugar.');
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    };
+
+    run();
 
     return () => {
       cancelled = true;

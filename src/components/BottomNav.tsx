@@ -7,7 +7,12 @@ import { colors } from '../theme/colors';
 
 type TabKey = 'inicio' | 'explorar' | 'plan' | 'guardados' | 'perfil';
 
-const TABS: { key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap; activeIcon: keyof typeof Ionicons.glyphMap }[] = [
+const TABS: {
+  key: TabKey;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  activeIcon: keyof typeof Ionicons.glyphMap;
+}[] = [
   { key: 'inicio', label: 'Inicio', icon: 'home-outline', activeIcon: 'home' },
   { key: 'explorar', label: 'Explorar', icon: 'search-outline', activeIcon: 'search' },
   { key: 'plan', label: 'Plan personalizado', icon: 'add', activeIcon: 'add' },

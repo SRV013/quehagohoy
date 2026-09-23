@@ -5,11 +5,7 @@ import { colors } from '../theme/colors';
 export default function Logo() {
   return (
     <View style={styles.container}>
-      <Image
-        source={require('../assets/logo-icon.png')}
-        style={styles.icon}
-        resizeMode="contain"
-      />
+      <Image source={require('../assets/logo-icon.png')} style={styles.icon} resizeMode="contain" />
       <View style={styles.textBlock}>
         <View style={styles.wordmark}>
           <Text style={[styles.wordmarkText, { color: colors.textOnDark }]}>Qué</Text>

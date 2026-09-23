@@ -36,7 +36,10 @@ export async function generateRecommendations(
 
   const placesList = candidates
     .slice(0, 25)
-    .map((place) => `${place.id}|${place.name}|${place.types[0] ?? 'lugar'}|rating ${place.rating ?? '-'}`)
+    .map(
+      (place) =>
+        `${place.id}|${place.name}|${place.types[0] ?? 'lugar'}|rating ${place.rating ?? '-'}`,
+    )
     .join('\n');
 
   const systemPrompt = `Sos el motor de recomendaciones de la app "QuéHagoHoy". El usuario escribe lo que tiene ganas de hacer (a veces mezcla varias ganas distintas, ej: "estoy aburrido y con hambre"). Tu trabajo es separar el pedido en 1 a 4 grupos por necesidad y, para cada uno, elegir los lugares reales de la lista que mejor encajan. Nunca inventes lugares ni ids que no estén en la lista.

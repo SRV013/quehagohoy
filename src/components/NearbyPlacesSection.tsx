@@ -26,10 +26,10 @@ export default function NearbyPlacesSection({ query = '' }: NearbyPlacesSectionP
     const lat = location.latitude;
     const lng = location.longitude;
     let cancelled = false;
-    setLoading(true);
-    setError(null);
 
     const run = async () => {
+      setLoading(true);
+      setError(null);
       try {
         if (!query) {
           const nearby = await fetchNearbyPlaces(lat, lng);
@@ -51,7 +51,12 @@ export default function NearbyPlacesSection({ query = '' }: NearbyPlacesSectionP
 
         try {
           const result = await generateRecommendations(query, candidates);
-          if (!cancelled) setGroups(result.length > 0 ? result : [{ title: `Resultados para "${query}"`, places: candidates }]);
+          if (!cancelled)
+            setGroups(
+              result.length > 0
+                ? result
+                : [{ title: `Resultados para "${query}"`, places: candidates }],
+            );
         } catch (aiError) {
           // Gemini puede fallar por demanda alta u otros motivos transitorios: mostramos
           // los lugares reales sin agrupar en vez de dejar la búsqueda vacía.
@@ -61,7 +66,10 @@ export default function NearbyPlacesSection({ query = '' }: NearbyPlacesSectionP
       } catch (err) {
         if (cancelled) return;
         console.warn('NearbyPlacesSection fetch failed', err);
-        if (err instanceof Error && (err.message === 'MISSING_API_KEY' || err.message.startsWith('PLACES_API'))) {
+        if (
+          err instanceof Error &&
+          (err.message === 'MISSING_API_KEY' || err.message.startsWith('PLACES_API'))
+        ) {
           setError('Falta configurar alguna API key (archivo .env).');
         } else {
           setError('No pudimos cargar recomendaciones. Probá de nuevo.');
@@ -112,7 +120,9 @@ export default function NearbyPlacesSection({ query = '' }: NearbyPlacesSectionP
       {location.status === 'granted' && !loading && !error && groups.length === 0 && (
         <View style={styles.centered}>
           <Text style={styles.helperText}>
-            {query ? `No encontramos resultados para "${query}".` : 'No encontramos lugares cerca tuyo.'}
+            {query
+              ? `No encontramos resultados para "${query}".`
+              : 'No encontramos lugares cerca tuyo.'}
           </Text>
         </View>
       )}
@@ -128,7 +138,12 @@ export default function NearbyPlacesSection({ query = '' }: NearbyPlacesSectionP
                 place={place}
                 distanceKm={
                   location.latitude != null && location.longitude != null
-                    ? distanceInKm(location.latitude, location.longitude, place.latitude, place.longitude)
+                    ? distanceInKm(
+                        location.latitude,
+                        location.longitude,
+                        place.latitude,
+                        place.longitude,
+                      )
                     : null
                 }
               />

@@ -31,7 +31,8 @@
         {
           "locationWhenInUsePermission": "QuéHagoHoy usa tu ubicación para mostrarte lugares cercanos."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {
