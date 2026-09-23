@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -18,18 +18,20 @@ import { colors } from '../theme/colors';
 
 type PlanGeneratorModalProps = {
   visible: boolean;
+  initialPrompt?: string;
   onClose: () => void;
 };
 
-export default function PlanGeneratorModal({ visible, onClose }: PlanGeneratorModalProps) {
+export default function PlanGeneratorModal({ visible, initialPrompt, onClose }: PlanGeneratorModalProps) {
   const location = useLocation();
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [plan, setPlan] = useState<string | null>(null);
+  const lastAutoPrompt = useRef<string | null>(null);
 
-  const handleGenerate = async () => {
-    if (!prompt.trim()) return;
+  const handleGenerate = async (promptText: string) => {
+    if (!promptText.trim()) return;
     if (location.latitude == null || location.longitude == null) {
       setError('Necesitamos tu ubicación para armar el plan.');
       return;
@@ -40,11 +42,19 @@ export default function PlanGeneratorModal({ visible, onClose }: PlanGeneratorMo
     setPlan(null);
 
     try {
-      const found = await searchPlacesByText(prompt, location.latitude, location.longitude);
-      const candidatePlaces =
-        found.length > 0 ? found : await fetchNearbyPlaces(location.latitude, location.longitude);
+      const [diverse, targeted] = await Promise.all([
+        fetchNearbyPlaces(location.latitude, location.longitude),
+        searchPlacesByText(promptText, location.latitude, location.longitude),
+      ]);
 
-      const result = await generatePlan(prompt, candidatePlaces);
+      const seen = new Set<string>();
+      const candidatePlaces = [...targeted, ...diverse].filter((place) => {
+        if (seen.has(place.id)) return false;
+        seen.add(place.id);
+        return true;
+      });
+
+      const result = await generatePlan(promptText, candidatePlaces);
       setPlan(result);
     } catch (err) {
       if (err instanceof Error && err.message === 'MISSING_API_KEY') {
@@ -57,10 +67,21 @@ export default function PlanGeneratorModal({ visible, onClose }: PlanGeneratorMo
     }
   };
 
+  useEffect(() => {
+    if (!visible || !initialPrompt) return;
+    if (lastAutoPrompt.current === initialPrompt) return;
+
+    lastAutoPrompt.current = initialPrompt;
+    setPrompt(initialPrompt);
+    handleGenerate(initialPrompt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, initialPrompt]);
+
   const handleClose = () => {
     setPrompt('');
     setPlan(null);
     setError(null);
+    lastAutoPrompt.current = null;
     onClose();
   };
 
@@ -86,7 +107,7 @@ export default function PlanGeneratorModal({ visible, onClose }: PlanGeneratorMo
 
           <Pressable
             style={[styles.button, (!prompt.trim() || loading) && styles.buttonDisabled]}
-            onPress={handleGenerate}
+            onPress={() => handleGenerate(prompt)}
             disabled={!prompt.trim() || loading}
           >
             {loading ? (

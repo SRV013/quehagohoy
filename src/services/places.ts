@@ -109,8 +109,18 @@ export async function searchPlacesByText(
 
   const data = await response.json();
   const places = data.places ?? [];
+  const mapped: NearbyPlace[] = places.map((place: any) => mapPlace(place, latitude, longitude));
 
-  return places.map((place: any) => mapPlace(place, latitude, longitude));
+  // locationBias es una preferencia, no una restricción dura: Google puede devolver
+  // resultados lejanos si el texto matchea mejor en otro lado. Los descartamos.
+  const maxKm = radiusMeters / 1000;
+  return mapped
+    .filter((place) => distanceInKm(latitude, longitude, place.latitude, place.longitude) <= maxKm)
+    .sort(
+      (a, b) =>
+        distanceInKm(latitude, longitude, a.latitude, a.longitude) -
+        distanceInKm(latitude, longitude, b.latitude, b.longitude),
+    );
 }
 
 export function distanceInKm(lat1: number, lon1: number, lat2: number, lon2: number): number {

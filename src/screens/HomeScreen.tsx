@@ -15,13 +15,9 @@ import { colors } from '../theme/colors';
 
 export default function HomeScreen() {
   const [searchText, setSearchText] = useState('');
-  const [activeQuery, setActiveQuery] = useState('');
+  const [categoryQuery, setCategoryQuery] = useState('');
   const [planModalVisible, setPlanModalVisible] = useState(false);
-
-  const runSearch = (query: string) => {
-    setSearchText(query);
-    setActiveQuery(query);
-  };
+  const [planPrompt, setPlanPrompt] = useState('');
 
   return (
     <View style={styles.container}>
@@ -30,22 +26,37 @@ export default function HomeScreen() {
         <HeroHeading />
         <SearchBar
           value={searchText}
-          onChangeText={(text) => {
-            setSearchText(text);
-            if (text === '') setActiveQuery('');
+          onChangeText={setSearchText}
+          onSubmit={() => {
+            if (!searchText.trim()) return;
+            setPlanPrompt(searchText.trim());
+            setPlanModalVisible(true);
           }}
-          onSubmit={() => setActiveQuery(searchText.trim())}
         />
-        <CategoryList onSelectCategory={runSearch} />
+        <CategoryList
+          onSelectCategory={(query) => {
+            setSearchText(query);
+            setCategoryQuery(query);
+          }}
+        />
         <View style={styles.body}>
           <PlansSection />
-          <NearbyPlacesSection query={activeQuery} />
+          <NearbyPlacesSection query={categoryQuery} />
           <ExperiencesSection />
           <PromoBanner />
         </View>
       </ScrollView>
-      <BottomNav onPressPlan={() => setPlanModalVisible(true)} />
-      <PlanGeneratorModal visible={planModalVisible} onClose={() => setPlanModalVisible(false)} />
+      <BottomNav
+        onPressPlan={() => {
+          setPlanPrompt('');
+          setPlanModalVisible(true);
+        }}
+      />
+      <PlanGeneratorModal
+        visible={planModalVisible}
+        initialPrompt={planPrompt || undefined}
+        onClose={() => setPlanModalVisible(false)}
+      />
     </View>
   );
 }

@@ -9,21 +9,28 @@ export async function generatePlan(prompt: string, places: NearbyPlace[]): Promi
   }
 
   const placesList = places
-    .slice(0, 10)
+    .slice(0, 20)
     .map(
       (place) =>
         `- ${place.name} (${place.types[0] ?? 'lugar'}${place.rating ? `, rating ${place.rating}` : ''}, ${place.address})`,
     )
     .join('\n');
 
-  const systemPrompt = `Sos el asistente de la app "QuéHagoHoy". Armá un plan corto y concreto para hoy, en español, basado ÚNICAMENTE en los lugares reales de la lista de abajo (no inventes lugares que no estén ahí).
+  const systemPrompt = `Sos el asistente de la app "QuéHagoHoy". Tu trabajo es entender lo que el usuario tiene ganas de hacer (a veces es algo vago o mezcla varias ganas distintas, tipo "estoy aburrido y con hambre") y armarle un plan concreto para hoy, en español, usando ÚNICAMENTE lugares reales de la lista de abajo (nunca inventes un lugar que no esté ahí).
 
 Lo que pide el usuario: "${prompt}"
 
-Lugares reales disponibles cerca:
-${placesList || '(no se encontraron lugares, sugerí algo genérico aclarando que no hay datos)'}
+Lugares reales disponibles cerca (de distintos rubros: comida, aire libre, entretenimiento, etc.):
+${placesList || '(no se encontraron lugares cerca; avisale al usuario que no hay datos suficientes por ahora, sin inventar nada)'}
 
-Armá un plan de 2 a 4 pasos usando 1 a 3 de esos lugares (los que mejor encajen), con un título corto y una breve explicación de por qué encajan. Respondé en un tono cercano y directo, sin markdown, listo para mostrar en una tarjeta de la app.`;
+Cómo responder:
+1. Arrancá con UNA frase corta y cercana reconociendo lo que pidió (ej: "Te armo un plan para cuando estás aburrido y con hambre:"). Nada de relleno después de esa frase.
+2. Si el pedido mezcla varias ganas o necesidades (ej. aburrido + hambre), atendé cada una por separado, no las mezcles en un solo paso.
+3. Para cada necesidad, si hay más de una opción real que encaje, ofrecé 2 alternativas concretas (ej. "para comer: pasta en X o algo más rápido en Y") en vez de una sola imposición.
+4. Usá entre 2 y 5 lugares reales de la lista en total. Nunca inventes nombres, direcciones ni datos que no estén en la lista.
+5. Cerrá sin frases de relleno tipo "espero que te sirva". Directo al grano.
+
+Formato: texto plano, sin markdown ni asteriscos, listo para mostrar en una tarjeta de la app.`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
   const body = JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] });
