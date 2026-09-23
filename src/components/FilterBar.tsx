@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '../theme/colors';
 import FilterPickerModal from './FilterPickerModal';
 
-type FilterKey = 'tiempo' | 'presupuesto' | 'conQuien' | 'donde';
+export type FilterKey = 'tiempo' | 'presupuesto' | 'conQuien' | 'donde';
+export type FilterValues = Record<FilterKey, string>;
 
 const FILTERS: {
   key: FilterKey;
@@ -39,16 +40,25 @@ const FILTERS: {
   },
 ];
 
-const DEFAULT_VALUES: Record<FilterKey, string> = {
+export const DEFAULT_FILTER_VALUES: FilterValues = {
   tiempo: '2 horas',
   presupuesto: '$ 20.000',
   conQuien: 'Solo',
   donde: 'Cerca mío',
 };
 
-export default function FilterBar() {
-  const [values, setValues] = useState<Record<FilterKey, string>>(DEFAULT_VALUES);
+type FilterBarProps = {
+  onChange?: (values: FilterValues) => void;
+};
+
+export default function FilterBar({ onChange }: FilterBarProps) {
+  const [values, setValues] = useState<FilterValues>(DEFAULT_FILTER_VALUES);
   const [activeFilter, setActiveFilter] = useState<FilterKey | null>(null);
+
+  useEffect(() => {
+    onChange?.(values);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values]);
 
   const active = FILTERS.find((filter) => filter.key === activeFilter) ?? null;
 

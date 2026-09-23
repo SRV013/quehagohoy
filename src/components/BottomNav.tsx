@@ -15,7 +15,11 @@ const TABS: { key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap; 
   { key: 'perfil', label: 'Perfil', icon: 'person-outline', activeIcon: 'person' },
 ];
 
-export default function BottomNav() {
+type BottomNavProps = {
+  onPressPlan?: () => void;
+};
+
+export default function BottomNav({ onPressPlan }: BottomNavProps) {
   const [active, setActive] = useState<TabKey>('inicio');
   const insets = useSafeAreaInsets();
 
@@ -27,7 +31,14 @@ export default function BottomNav() {
 
         if (isCenter) {
           return (
-            <Pressable key={tab.key} style={styles.tab} onPress={() => setActive(tab.key)}>
+            <Pressable
+              key={tab.key}
+              style={styles.tab}
+              onPress={() => {
+                setActive(tab.key);
+                onPressPlan?.();
+              }}
+            >
               <View style={styles.centerButton}>
                 <Ionicons name={tab.icon} size={28} color={colors.textOnDark} />
               </View>
