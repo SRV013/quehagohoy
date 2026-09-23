@@ -11,6 +11,7 @@ export type NearbyPlace = {
 };
 
 const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
+const LANGUAGE_CODE = 'es-AR';
 
 const INCLUDED_TYPES = ['restaurant', 'bar', 'cafe', 'park', 'tourist_attraction', 'night_club'];
 
@@ -53,6 +54,7 @@ export async function fetchNearbyPlaces(
       includedTypes: INCLUDED_TYPES,
       maxResultCount: 20,
       rankPreference: 'DISTANCE',
+      languageCode: LANGUAGE_CODE,
       locationRestriction: {
         circle: {
           center: { latitude, longitude },
@@ -93,6 +95,7 @@ export async function searchPlacesByText(
     body: JSON.stringify({
       textQuery: query,
       maxResultCount: 20,
+      languageCode: LANGUAGE_CODE,
       locationBias: {
         circle: {
           center: { latitude, longitude },
@@ -127,6 +130,7 @@ export type PlaceDetails = NearbyPlace & {
   phoneNumber: string | null;
   websiteUri: string | null;
   openingHours: string[] | null;
+  openNow: boolean | null;
   editorialSummary: string | null;
   priceLevel: string | null;
 };
@@ -139,12 +143,15 @@ export async function fetchPlaceDetails(placeId: string): Promise<PlaceDetails> 
     throw new Error('MISSING_API_KEY');
   }
 
-  const response = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
-    headers: {
-      'X-Goog-Api-Key': API_KEY,
-      'X-Goog-FieldMask': DETAILS_FIELD_MASK,
+  const response = await fetch(
+    `https://places.googleapis.com/v1/places/${placeId}?languageCode=${LANGUAGE_CODE}`,
+    {
+      headers: {
+        'X-Goog-Api-Key': API_KEY,
+        'X-Goog-FieldMask': DETAILS_FIELD_MASK,
+      },
     },
-  });
+  );
 
   if (!response.ok) {
     const body = await response.text();
@@ -159,9 +166,22 @@ export async function fetchPlaceDetails(placeId: string): Promise<PlaceDetails> 
     phoneNumber: place.nationalPhoneNumber ?? null,
     websiteUri: place.websiteUri ?? null,
     openingHours: place.regularOpeningHours?.weekdayDescriptions ?? null,
+    openNow: place.regularOpeningHours?.openNow ?? null,
     editorialSummary: place.editorialSummary?.text ?? null,
     priceLevel: place.priceLevel ?? null,
   };
+}
+
+const PRICE_LEVEL_LABELS: Record<string, string> = {
+  PRICE_LEVEL_FREE: 'Gratis',
+  PRICE_LEVEL_INEXPENSIVE: '$',
+  PRICE_LEVEL_MODERATE: '$$',
+  PRICE_LEVEL_EXPENSIVE: '$$$',
+  PRICE_LEVEL_VERY_EXPENSIVE: '$$$$',
+};
+
+export function priceLevelLabel(priceLevel: string | null): string | null {
+  return priceLevel ? (PRICE_LEVEL_LABELS[priceLevel] ?? null) : null;
 }
 
 export function distanceInKm(lat1: number, lon1: number, lat2: number, lon2: number): number {

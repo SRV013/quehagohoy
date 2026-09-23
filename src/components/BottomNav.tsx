@@ -1,73 +1,85 @@
+import { Ionicons } from '@expo/vector-icons';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors } from '../theme/colors';
+import PromptModal from './PromptModal';
 
-type TabKey = 'inicio' | 'explorar' | 'plan' | 'guardados' | 'perfil';
-
-const TABS: {
-  key: TabKey;
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  activeIcon: keyof typeof Ionicons.glyphMap;
-}[] = [
-  { key: 'inicio', label: 'Inicio', icon: 'home-outline', activeIcon: 'home' },
-  { key: 'explorar', label: 'Explorar', icon: 'search-outline', activeIcon: 'search' },
-  { key: 'plan', label: 'Plan personalizado', icon: 'add', activeIcon: 'add' },
-  { key: 'guardados', label: 'Guardados', icon: 'heart-outline', activeIcon: 'heart' },
-  { key: 'perfil', label: 'Perfil', icon: 'person-outline', activeIcon: 'person' },
-];
-
-type BottomNavProps = {
-  onPressPlan?: () => void;
+const TAB_ICONS: Record<
+  string,
+  { icon: keyof typeof Ionicons.glyphMap; activeIcon: keyof typeof Ionicons.glyphMap }
+> = {
+  Inicio: { icon: 'home-outline', activeIcon: 'home' },
+  Explorar: { icon: 'search-outline', activeIcon: 'search' },
+  Guardados: { icon: 'heart-outline', activeIcon: 'heart' },
+  Perfil: { icon: 'person-outline', activeIcon: 'person' },
 };
 
-export default function BottomNav({ onPressPlan }: BottomNavProps) {
-  const [active, setActive] = useState<TabKey>('inicio');
+export default function BottomNav({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const handleSubmitPrompt = (prompt: string) => {
+    setModalVisible(false);
+    navigation.navigate('Inicio', { prompt });
+  };
+
+  const renderTab = (route: (typeof state.routes)[number], index: number) => {
+    const isFocused = state.index === index;
+    const config = TAB_ICONS[route.name] ?? TAB_ICONS.Inicio;
+
+    const onPress = () => {
+      const event = navigation.emit({
+        type: 'tabPress',
+        target: route.key,
+        canPreventDefault: true,
+      });
+      if (!isFocused && !event.defaultPrevented) {
+        navigation.navigate(route.name);
+      }
+    };
+
+    return (
+      <Pressable key={route.key} style={styles.tab} onPress={onPress}>
+        <Ionicons
+          name={isFocused ? config.activeIcon : config.icon}
+          size={24}
+          color={isFocused ? colors.primary : colors.inactive}
+        />
+        <Text style={[styles.label, isFocused && styles.labelActive]} numberOfLines={1}>
+          {route.name}
+        </Text>
+      </Pressable>
+    );
+  };
 
   return (
-    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-      {TABS.map((tab) => {
-        const isActive = active === tab.key;
-        const isCenter = tab.key === 'plan';
+    <>
+      <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        {renderTab(state.routes[0], 0)}
+        {renderTab(state.routes[1], 1)}
 
-        if (isCenter) {
-          return (
-            <Pressable
-              key={tab.key}
-              style={styles.tab}
-              onPress={() => {
-                setActive(tab.key);
-                onPressPlan?.();
-              }}
-            >
-              <View style={styles.centerButton}>
-                <Ionicons name={tab.icon} size={28} color={colors.textOnDark} />
-              </View>
-              <Text style={styles.label} numberOfLines={1}>
-                {tab.label}
-              </Text>
-            </Pressable>
-          );
-        }
+        <Pressable style={styles.tab} onPress={() => setModalVisible(true)} hitSlop={4}>
+          <View style={styles.centerButton}>
+            <Ionicons name="sparkles" size={24} color={colors.textOnDark} />
+          </View>
+          <Text style={styles.label} numberOfLines={1}>
+            Dame ideas
+          </Text>
+        </Pressable>
 
-        return (
-          <Pressable key={tab.key} style={styles.tab} onPress={() => setActive(tab.key)}>
-            <Ionicons
-              name={isActive ? tab.activeIcon : tab.icon}
-              size={24}
-              color={isActive ? colors.primary : colors.inactive}
-            />
-            <Text style={[styles.label, isActive && styles.labelActive]} numberOfLines={1}>
-              {tab.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
+        {renderTab(state.routes[2], 2)}
+        {renderTab(state.routes[3], 3)}
+      </View>
+
+      <PromptModal
+        visible={modalVisible}
+        onSubmit={handleSubmitPrompt}
+        onClose={() => setModalVisible(false)}
+      />
+    </>
   );
 }
 
@@ -102,5 +114,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: -28,
     marginBottom: 4,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
   },
 });

@@ -3,23 +3,11 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useFavorites } from '../context/FavoritesContext';
 import { RootStackParamList } from '../navigation/types';
 import { NearbyPlace } from '../services/places';
 import { colors } from '../theme/colors';
-
-const TYPE_LABELS: Record<string, string> = {
-  restaurant: 'Restaurante',
-  bar: 'Bar',
-  cafe: 'Café',
-  park: 'Parque',
-  tourist_attraction: 'Atracción',
-  night_club: 'Vida nocturna',
-};
-
-function typeLabel(types: string[]): string {
-  const match = types.find((type) => TYPE_LABELS[type]);
-  return match ? TYPE_LABELS[match] : 'Lugar';
-}
+import { placeTypeLabel } from '../utils/placeLabels';
 
 type PlaceRowProps = {
   place: NearbyPlace;
@@ -28,6 +16,8 @@ type PlaceRowProps = {
 
 export default function PlaceRow({ place, distanceKm }: PlaceRowProps) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const favorite = isFavorite(place.id);
 
   return (
     <Pressable style={styles.row} onPress={() => navigation.navigate('PlaceDetail', { place })}>
@@ -43,11 +33,18 @@ export default function PlaceRow({ place, distanceKm }: PlaceRowProps) {
           {place.name}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
-          {typeLabel(place.types)}
+          {placeTypeLabel(place.types)}
           {place.rating ? ` · ★ ${place.rating}` : ''}
           {distanceKm != null ? ` · ${distanceKm.toFixed(1)} km` : ''}
         </Text>
       </View>
+      <Pressable hitSlop={10} style={styles.favoriteButton} onPress={() => toggleFavorite(place)}>
+        <Ionicons
+          name={favorite ? 'heart' : 'heart-outline'}
+          size={20}
+          color={favorite ? colors.accentPink : colors.textSecondary}
+        />
+      </Pressable>
     </Pressable>
   );
 }
@@ -86,5 +83,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 12,
     color: colors.textSecondary,
+  },
+  favoriteButton: {
+    padding: 4,
   },
 });

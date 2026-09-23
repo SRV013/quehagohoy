@@ -6,11 +6,11 @@ export default function HeroHeading() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>
-        <Text style={styles.titleWhite}>¿Qué querés hacer </Text>
-        <Text style={styles.titleAccent}>hoy?</Text>
+        <Text style={styles.titleWhite}>Contanos qué tenés </Text>
+        <Text style={styles.titleAccent}>ganas de hacer</Text>
       </Text>
       <Text style={styles.subtitle}>
-        Elegí tus preferencias y te mostramos las mejores opciones cerca tuyo.
+        Escribí tu idea acá abajo y te mostramos las mejores opciones cerca tuyo.
       </Text>
     </View>
   );

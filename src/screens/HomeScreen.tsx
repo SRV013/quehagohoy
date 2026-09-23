@@ -1,26 +1,37 @@
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useState } from 'react';
-import { ScrollView, View, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
-import BottomNav from '../components/BottomNav';
 import CategoryList from '../components/CategoryList';
 import ExperiencesSection from '../components/ExperiencesSection';
 import Header from '../components/Header';
 import HeroHeading from '../components/HeroHeading';
 import NearbyPlacesSection from '../components/NearbyPlacesSection';
 import PromoBanner from '../components/PromoBanner';
-import PromptModal from '../components/PromptModal';
 import SearchBar from '../components/SearchBar';
+import { MainTabParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 
-export default function HomeScreen() {
+type Props = BottomTabScreenProps<MainTabParamList, 'Inicio'>;
+
+export default function HomeScreen({ route }: Props) {
   const [searchText, setSearchText] = useState('');
   const [activeQuery, setActiveQuery] = useState('');
-  const [promptModalVisible, setPromptModalVisible] = useState(false);
 
   const runSearch = (query: string) => {
     setSearchText(query);
     setActiveQuery(query);
   };
+
+  // Sincronizamos el estado con el prompt que llega desde el modal "Dame ideas"
+  // ajustando el estado durante el render, en vez de con un efecto (evita un
+  // re-render en cascada): https://react.dev/learn/you-might-not-need-an-effect
+  const incomingPrompt = route.params?.prompt;
+  const [lastHandledPrompt, setLastHandledPrompt] = useState(incomingPrompt);
+  if (incomingPrompt && incomingPrompt !== lastHandledPrompt) {
+    setLastHandledPrompt(incomingPrompt);
+    runSearch(incomingPrompt);
+  }
 
   return (
     <View style={styles.container}>
@@ -39,15 +50,6 @@ export default function HomeScreen() {
           <PromoBanner />
         </View>
       </ScrollView>
-      <BottomNav onPressPlan={() => setPromptModalVisible(true)} />
-      <PromptModal
-        visible={promptModalVisible}
-        onSubmit={(prompt) => {
-          runSearch(prompt);
-          setPromptModalVisible(false);
-        }}
-        onClose={() => setPromptModalVisible(false)}
-      />
     </View>
   );
 }
