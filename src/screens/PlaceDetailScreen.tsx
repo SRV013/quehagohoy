@@ -39,6 +39,18 @@ function ActionPill({
   );
 }
 
+function splitWeekdayLine(line: string): { day: string; hours: string } {
+  const separatorIndex = line.indexOf(':');
+  if (separatorIndex === -1) {
+    return { day: line, hours: '' };
+  }
+  const day = line.slice(0, separatorIndex).trim();
+  return {
+    day: day.charAt(0).toUpperCase() + day.slice(1),
+    hours: line.slice(separatorIndex + 1).trim(),
+  };
+}
+
 function InfoRow({
   icon,
   onPress,
@@ -220,11 +232,15 @@ export default function PlaceDetailScreen({ route, navigation }: Props) {
                       : 'Cerrado ahora'}
                 </Text>
                 {hoursExpanded &&
-                  details.openingHours.map((line) => (
-                    <Text key={line} style={styles.infoSecondary}>
-                      {line}
-                    </Text>
-                  ))}
+                  details.openingHours.map((line) => {
+                    const { day, hours } = splitWeekdayLine(line);
+                    return (
+                      <View key={line} style={styles.hoursRow}>
+                        <Text style={styles.hoursDay}>{day}</Text>
+                        <Text style={styles.hoursTime}>{hours}</Text>
+                      </View>
+                    );
+                  })}
               </InfoRow>
             )}
 
@@ -375,6 +391,19 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 13,
     lineHeight: 19,
+    color: colors.textSecondary,
+  },
+  hoursRow: {
+    marginTop: 10,
+  },
+  hoursDay: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  hoursTime: {
+    marginTop: 1,
+    fontSize: 13,
     color: colors.textSecondary,
   },
 });
