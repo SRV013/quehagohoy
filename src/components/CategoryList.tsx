@@ -1,5 +1,5 @@
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '../theme/colors';
 
@@ -11,6 +11,7 @@ type IconConfig =
 type Category = {
   key: string;
   label: string;
+  query: string;
   bg: string;
   iconColor: string;
   icon: IconConfig;
@@ -20,6 +21,7 @@ const CATEGORIES: Category[] = [
   {
     key: 'comer',
     label: 'Comer y beber',
+    query: 'restaurantes y bares',
     bg: colors.category.peach,
     iconColor: '#E8600C',
     icon: { family: 'ionicons', name: 'restaurant-outline' },
@@ -27,6 +29,7 @@ const CATEGORIES: Category[] = [
   {
     key: 'cine',
     label: 'Cine y series',
+    query: 'cines',
     bg: colors.category.lavender,
     iconColor: '#5B21E0',
     icon: { family: 'materialCommunity', name: 'movie-open-outline' },
@@ -34,6 +37,7 @@ const CATEGORIES: Category[] = [
   {
     key: 'naturaleza',
     label: 'Naturaleza',
+    query: 'parques y naturaleza',
     bg: colors.category.sage,
     iconColor: '#0E8A45',
     icon: { family: 'material', name: 'terrain' },
@@ -41,6 +45,7 @@ const CATEGORIES: Category[] = [
   {
     key: 'deportes',
     label: 'Deportes',
+    query: 'lugares para hacer deporte',
     bg: colors.category.sky,
     iconColor: '#0E75E8',
     icon: { family: 'materialCommunity', name: 'run' },
@@ -48,6 +53,7 @@ const CATEGORIES: Category[] = [
   {
     key: 'cultura',
     label: 'Cultura',
+    query: 'museos y teatros',
     bg: colors.category.orchid,
     iconColor: '#D1127A',
     icon: { family: 'ionicons', name: 'ticket-outline' },
@@ -55,6 +61,7 @@ const CATEGORIES: Category[] = [
   {
     key: 'relax',
     label: 'Relax',
+    query: 'spa y relax',
     bg: colors.category.lavender,
     iconColor: '#2E3FB5',
     icon: { family: 'materialCommunity', name: 'spa' },
@@ -71,18 +78,26 @@ function CategoryIcon({ icon, color }: { icon: IconConfig; color: string }) {
   return <MaterialCommunityIcons name={icon.name} size={22} color={color} />;
 }
 
-export default function CategoryList() {
+type CategoryListProps = {
+  onSelectCategory?: (query: string) => void;
+};
+
+export default function CategoryList({ onSelectCategory }: CategoryListProps) {
   return (
     <View style={styles.container}>
       {CATEGORIES.map((category) => (
-        <View key={category.key} style={styles.item}>
+        <Pressable
+          key={category.key}
+          style={styles.item}
+          onPress={() => onSelectCategory?.(category.query)}
+        >
           <View style={[styles.circle, { backgroundColor: category.bg }]}>
             <CategoryIcon icon={category.icon} color={category.iconColor} />
           </View>
           <Text style={styles.label} numberOfLines={2}>
             {category.label}
           </Text>
-        </View>
+        </Pressable>
       ))}
     </View>
   );

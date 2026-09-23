@@ -4,7 +4,6 @@ import { ScrollView, View, StyleSheet } from 'react-native';
 import BottomNav from '../components/BottomNav';
 import CategoryList from '../components/CategoryList';
 import ExperiencesSection from '../components/ExperiencesSection';
-import FilterBar, { DEFAULT_FILTER_VALUES, FilterValues } from '../components/FilterBar';
 import Header from '../components/Header';
 import HeroHeading from '../components/HeroHeading';
 import NearbyPlacesSection from '../components/NearbyPlacesSection';
@@ -17,15 +16,18 @@ import { colors } from '../theme/colors';
 export default function HomeScreen() {
   const [searchText, setSearchText] = useState('');
   const [activeQuery, setActiveQuery] = useState('');
-  const [filters, setFilters] = useState<FilterValues>(DEFAULT_FILTER_VALUES);
   const [planModalVisible, setPlanModalVisible] = useState(false);
+
+  const runSearch = (query: string) => {
+    setSearchText(query);
+    setActiveQuery(query);
+  };
 
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <Header />
         <HeroHeading />
-        <FilterBar onChange={setFilters} />
         <SearchBar
           value={searchText}
           onChangeText={(text) => {
@@ -34,7 +36,7 @@ export default function HomeScreen() {
           }}
           onSubmit={() => setActiveQuery(searchText.trim())}
         />
-        <CategoryList />
+        <CategoryList onSelectCategory={runSearch} />
         <View style={styles.body}>
           <PlansSection />
           <NearbyPlacesSection query={activeQuery} />
@@ -43,11 +45,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
       <BottomNav onPressPlan={() => setPlanModalVisible(true)} />
-      <PlanGeneratorModal
-        visible={planModalVisible}
-        filters={filters}
-        onClose={() => setPlanModalVisible(false)}
-      />
+      <PlanGeneratorModal visible={planModalVisible} onClose={() => setPlanModalVisible(false)} />
     </View>
   );
 }

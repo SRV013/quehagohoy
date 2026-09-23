@@ -11,7 +11,6 @@ import {
   View,
 } from 'react-native';
 
-import { FilterValues } from './FilterBar';
 import { useLocation } from '../hooks/useLocation';
 import { generatePlan } from '../services/gemini';
 import { fetchNearbyPlaces, searchPlacesByText } from '../services/places';
@@ -19,11 +18,10 @@ import { colors } from '../theme/colors';
 
 type PlanGeneratorModalProps = {
   visible: boolean;
-  filters: FilterValues;
   onClose: () => void;
 };
 
-export default function PlanGeneratorModal({ visible, filters, onClose }: PlanGeneratorModalProps) {
+export default function PlanGeneratorModal({ visible, onClose }: PlanGeneratorModalProps) {
   const location = useLocation();
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,7 +44,7 @@ export default function PlanGeneratorModal({ visible, filters, onClose }: PlanGe
       const candidatePlaces =
         found.length > 0 ? found : await fetchNearbyPlaces(location.latitude, location.longitude);
 
-      const result = await generatePlan(prompt, filters, candidatePlaces);
+      const result = await generatePlan(prompt, candidatePlaces);
       setPlan(result);
     } catch (err) {
       if (err instanceof Error && err.message === 'MISSING_API_KEY') {
@@ -76,10 +74,6 @@ export default function PlanGeneratorModal({ visible, filters, onClose }: PlanGe
               <Ionicons name="close" size={22} color={colors.textSecondary} />
             </Pressable>
           </View>
-
-          <Text style={styles.filtersText}>
-            {filters.tiempo} · {filters.presupuesto} · {filters.conQuien} · {filters.donde}
-          </Text>
 
           <TextInput
             style={styles.input}
@@ -138,11 +132,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: colors.textPrimary,
-  },
-  filtersText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 14,
   },
   input: {
     minHeight: 70,
