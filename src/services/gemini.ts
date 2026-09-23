@@ -3,37 +3,66 @@ import { NearbyPlace } from './places';
 const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 const MODEL = 'gemini-3.6-flash';
 
-export async function generatePlan(prompt: string, places: NearbyPlace[]): Promise<string> {
+export type RecommendationGroup = {
+  title: string;
+  places: NearbyPlace[];
+};
+
+const RESPONSE_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    groups: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          title: { type: 'STRING' },
+          placeIds: { type: 'ARRAY', items: { type: 'STRING' } },
+        },
+        required: ['title', 'placeIds'],
+      },
+    },
+  },
+  required: ['groups'],
+};
+
+export async function generateRecommendations(
+  prompt: string,
+  candidates: NearbyPlace[],
+): Promise<RecommendationGroup[]> {
   if (!API_KEY) {
     throw new Error('MISSING_API_KEY');
   }
 
-  const placesList = places
-    .slice(0, 20)
-    .map(
-      (place) =>
-        `- ${place.name} (${place.types[0] ?? 'lugar'}${place.rating ? `, rating ${place.rating}` : ''}, ${place.address})`,
-    )
+  const placesList = candidates
+    .slice(0, 25)
+    .map((place) => `${place.id}|${place.name}|${place.types[0] ?? 'lugar'}|rating ${place.rating ?? '-'}`)
     .join('\n');
 
-  const systemPrompt = `Sos el asistente de la app "QuéHagoHoy". Tu trabajo es entender lo que el usuario tiene ganas de hacer (a veces es algo vago o mezcla varias ganas distintas, tipo "estoy aburrido y con hambre") y armarle un plan concreto para hoy, en español, usando ÚNICAMENTE lugares reales de la lista de abajo (nunca inventes un lugar que no esté ahí).
+  const systemPrompt = `Sos el motor de recomendaciones de la app "QuéHagoHoy". El usuario escribe lo que tiene ganas de hacer (a veces mezcla varias ganas distintas, ej: "estoy aburrido y con hambre"). Tu trabajo es separar el pedido en 1 a 4 grupos por necesidad y, para cada uno, elegir los lugares reales de la lista que mejor encajan. Nunca inventes lugares ni ids que no estén en la lista.
 
-Lo que pide el usuario: "${prompt}"
+Pedido del usuario: "${prompt}"
 
-Lugares reales disponibles cerca (de distintos rubros: comida, aire libre, entretenimiento, etc.):
-${placesList || '(no se encontraron lugares cerca; avisale al usuario que no hay datos suficientes por ahora, sin inventar nada)'}
+Lugares reales disponibles cerca (formato id|nombre|rubro|rating):
+${placesList || '(no hay lugares disponibles)'}
 
-Cómo responder:
-1. Arrancá con UNA frase corta y cercana reconociendo lo que pidió (ej: "Te armo un plan para cuando estás aburrido y con hambre:"). Nada de relleno después de esa frase.
-2. Si el pedido mezcla varias ganas o necesidades (ej. aburrido + hambre), atendé cada una por separado, no las mezcles en un solo paso.
-3. Para cada necesidad, si hay más de una opción real que encaje, ofrecé 2 alternativas concretas (ej. "para comer: pasta en X o algo más rápido en Y") en vez de una sola imposición.
-4. Usá entre 2 y 5 lugares reales de la lista en total. Nunca inventes nombres, direcciones ni datos que no estén en la lista.
-5. Cerrá sin frases de relleno tipo "espero que te sirva". Directo al grano.
+Reglas:
+- Si el pedido tiene una sola necesidad clara, devolvé 1 solo grupo.
+- Si mezcla varias (ej. comer + aire libre + entretenimiento), separá un grupo por cada una.
+- El título de cada grupo tiene que ser corto y describir la necesidad + lo que pidió, ej: "Lugares para comer algo rico", "Para despejarte al aire libre". No repitas la palabra "lugares" en todos los títulos.
+- Cada grupo lleva de 2 a 5 placeIds reales, ordenados del que mejor encaja al que menos.
+- Usá SOLO ids que estén en la lista de arriba. Si no hay ningún lugar que encaje con una necesidad, no incluyas ese grupo.
 
-Formato: texto plano, sin markdown ni asteriscos, listo para mostrar en una tarjeta de la app.`;
+Devolvé únicamente el JSON con la forma indicada, nada de texto extra.`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
-  const body = JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] });
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: systemPrompt }] }],
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: RESPONSE_SCHEMA,
+    },
+  });
 
   const maxAttempts = 3;
   let lastError: Error | null = null;
@@ -51,7 +80,24 @@ Formato: texto plano, sin markdown ni asteriscos, listo para mostrar en una tarj
       if (!text) {
         throw new Error('EMPTY_RESPONSE');
       }
-      return text.trim();
+
+      let parsed: { groups?: { title: string; placeIds: string[] }[] };
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        throw new Error('INVALID_JSON');
+      }
+
+      const byId = new Map(candidates.map((place) => [place.id, place]));
+
+      return (parsed.groups ?? [])
+        .map((group) => ({
+          title: group.title,
+          places: (group.placeIds ?? [])
+            .map((id) => byId.get(id))
+            .filter((place): place is NearbyPlace => Boolean(place)),
+        }))
+        .filter((group) => group.places.length > 0);
     }
 
     const errorBody = await response.text();

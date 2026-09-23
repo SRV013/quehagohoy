@@ -7,17 +7,20 @@ import ExperiencesSection from '../components/ExperiencesSection';
 import Header from '../components/Header';
 import HeroHeading from '../components/HeroHeading';
 import NearbyPlacesSection from '../components/NearbyPlacesSection';
-import PlanGeneratorModal from '../components/PlanGeneratorModal';
-import PlansSection from '../components/PlansSection';
 import PromoBanner from '../components/PromoBanner';
+import PromptModal from '../components/PromptModal';
 import SearchBar from '../components/SearchBar';
 import { colors } from '../theme/colors';
 
 export default function HomeScreen() {
   const [searchText, setSearchText] = useState('');
-  const [categoryQuery, setCategoryQuery] = useState('');
-  const [planModalVisible, setPlanModalVisible] = useState(false);
-  const [planPrompt, setPlanPrompt] = useState('');
+  const [activeQuery, setActiveQuery] = useState('');
+  const [promptModalVisible, setPromptModalVisible] = useState(false);
+
+  const runSearch = (query: string) => {
+    setSearchText(query);
+    setActiveQuery(query);
+  };
 
   return (
     <View style={styles.container}>
@@ -27,35 +30,23 @@ export default function HomeScreen() {
         <SearchBar
           value={searchText}
           onChangeText={setSearchText}
-          onSubmit={() => {
-            if (!searchText.trim()) return;
-            setPlanPrompt(searchText.trim());
-            setPlanModalVisible(true);
-          }}
+          onSubmit={() => searchText.trim() && runSearch(searchText.trim())}
         />
-        <CategoryList
-          onSelectCategory={(query) => {
-            setSearchText(query);
-            setCategoryQuery(query);
-          }}
-        />
+        <CategoryList onSelectCategory={runSearch} />
         <View style={styles.body}>
-          <PlansSection />
-          <NearbyPlacesSection query={categoryQuery} />
+          <NearbyPlacesSection query={activeQuery} />
           <ExperiencesSection />
           <PromoBanner />
         </View>
       </ScrollView>
-      <BottomNav
-        onPressPlan={() => {
-          setPlanPrompt('');
-          setPlanModalVisible(true);
+      <BottomNav onPressPlan={() => setPromptModalVisible(true)} />
+      <PromptModal
+        visible={promptModalVisible}
+        onSubmit={(prompt) => {
+          runSearch(prompt);
+          setPromptModalVisible(false);
         }}
-      />
-      <PlanGeneratorModal
-        visible={planModalVisible}
-        initialPrompt={planPrompt || undefined}
-        onClose={() => setPlanModalVisible(false)}
+        onClose={() => setPromptModalVisible(false)}
       />
     </View>
   );

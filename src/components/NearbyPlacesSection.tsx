@@ -1,24 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { useLocation } from '../hooks/useLocation';
-import { distanceInKm, fetchNearbyPlaces, NearbyPlace, searchPlacesByText } from '../services/places';
+import { generateRecommendations, RecommendationGroup } from '../services/gemini';
+import { distanceInKm, fetchNearbyPlaces, searchPlacesByText } from '../services/places';
 import { colors } from '../theme/colors';
-
-const TYPE_LABELS: Record<string, string> = {
-  restaurant: 'Restaurante',
-  bar: 'Bar',
-  cafe: 'Café',
-  park: 'Parque',
-  tourist_attraction: 'Atracción',
-  night_club: 'Vida nocturna',
-};
-
-function typeLabel(types: string[]): string {
-  const match = types.find((type) => TYPE_LABELS[type]);
-  return match ? TYPE_LABELS[match] : 'Lugar';
-}
+import PlaceRow from './PlaceRow';
 
 type NearbyPlacesSectionProps = {
   query?: string;
@@ -26,8 +14,8 @@ type NearbyPlacesSectionProps = {
 
 export default function NearbyPlacesSection({ query = '' }: NearbyPlacesSectionProps) {
   const location = useLocation();
-  const [places, setPlaces] = useState<NearbyPlace[]>([]);
-  const [loadingPlaces, setLoadingPlaces] = useState(false);
+  const [groups, setGroups] = useState<RecommendationGroup[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,29 +23,47 @@ export default function NearbyPlacesSection({ query = '' }: NearbyPlacesSectionP
       return;
     }
 
+    const lat = location.latitude;
+    const lng = location.longitude;
     let cancelled = false;
-    setLoadingPlaces(true);
+    setLoading(true);
     setError(null);
 
-    const request = query
-      ? searchPlacesByText(query, location.latitude, location.longitude)
-      : fetchNearbyPlaces(location.latitude, location.longitude);
-
-    request
-      .then((results) => {
-        if (!cancelled) setPlaces(results);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        if (err instanceof Error && err.message === 'MISSING_API_KEY') {
-          setError('Falta configurar la API key de Google Places (archivo .env).');
-        } else {
-          setError('No pudimos cargar lugares cercanos.');
+    const run = async () => {
+      try {
+        if (!query) {
+          const nearby = await fetchNearbyPlaces(lat, lng);
+          if (!cancelled) setGroups([{ title: 'Cerca tuyo ahora', places: nearby }]);
+          return;
         }
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingPlaces(false);
-      });
+
+        const [diverse, targeted] = await Promise.all([
+          fetchNearbyPlaces(lat, lng),
+          searchPlacesByText(query, lat, lng),
+        ]);
+
+        const seen = new Set<string>();
+        const candidates = [...targeted, ...diverse].filter((place) => {
+          if (seen.has(place.id)) return false;
+          seen.add(place.id);
+          return true;
+        });
+
+        const result = await generateRecommendations(query, candidates);
+        if (!cancelled) setGroups(result);
+      } catch (err) {
+        if (cancelled) return;
+        if (err instanceof Error && (err.message === 'MISSING_API_KEY' || err.message.startsWith('PLACES_API'))) {
+          setError('Falta configurar alguna API key (archivo .env).');
+        } else {
+          setError('No pudimos cargar recomendaciones. Probá de nuevo.');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    run();
 
     return () => {
       cancelled = true;
@@ -66,8 +72,6 @@ export default function NearbyPlacesSection({ query = '' }: NearbyPlacesSectionP
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{query ? `Resultados para "${query}"` : 'Cerca tuyo ahora'}</Text>
-
       {location.status === 'loading' && (
         <View style={styles.centered}>
           <ActivityIndicator color={colors.primary} />
@@ -82,20 +86,22 @@ export default function NearbyPlacesSection({ query = '' }: NearbyPlacesSectionP
         </View>
       )}
 
-      {location.status === 'granted' && loadingPlaces && (
+      {location.status === 'granted' && loading && (
         <View style={styles.centered}>
           <ActivityIndicator color={colors.primary} />
-          <Text style={styles.helperText}>Buscando lugares cerca tuyo...</Text>
+          <Text style={styles.helperText}>
+            {query ? 'Buscando las mejores opciones...' : 'Buscando lugares cerca tuyo...'}
+          </Text>
         </View>
       )}
 
-      {location.status === 'granted' && !loadingPlaces && error && (
+      {location.status === 'granted' && !loading && error && (
         <View style={styles.centered}>
           <Text style={styles.helperText}>{error}</Text>
         </View>
       )}
 
-      {location.status === 'granted' && !loadingPlaces && !error && places.length === 0 && (
+      {location.status === 'granted' && !loading && !error && groups.length === 0 && (
         <View style={styles.centered}>
           <Text style={styles.helperText}>
             {query ? `No encontramos resultados para "${query}".` : 'No encontramos lugares cerca tuyo.'}
@@ -103,34 +109,24 @@ export default function NearbyPlacesSection({ query = '' }: NearbyPlacesSectionP
         </View>
       )}
 
-      {places.map((place) => {
-        const distance =
-          location.latitude != null && location.longitude != null
-            ? distanceInKm(location.latitude, location.longitude, place.latitude, place.longitude)
-            : null;
-
-        return (
-          <Pressable key={place.id} style={styles.row}>
-            <View style={styles.thumbnail}>
-              {place.photoUrl ? (
-                <Image source={{ uri: place.photoUrl }} style={styles.thumbnailImage} />
-              ) : (
-                <Ionicons name="location-outline" size={20} color={colors.textSecondary} />
-              )}
-            </View>
-            <View style={styles.info}>
-              <Text style={styles.name} numberOfLines={1}>
-                {place.name}
-              </Text>
-              <Text style={styles.meta} numberOfLines={1}>
-                {typeLabel(place.types)}
-                {place.rating ? ` · ★ ${place.rating}` : ''}
-                {distance != null ? ` · ${distance.toFixed(1)} km` : ''}
-              </Text>
-            </View>
-          </Pressable>
-        );
-      })}
+      {!loading &&
+        !error &&
+        groups.map((group) => (
+          <View key={group.title} style={styles.group}>
+            <Text style={styles.title}>{group.title}</Text>
+            {group.places.map((place) => (
+              <PlaceRow
+                key={place.id}
+                place={place}
+                distanceKm={
+                  location.latitude != null && location.longitude != null
+                    ? distanceInKm(location.latitude, location.longitude, place.latitude, place.longitude)
+                    : null
+                }
+              />
+            ))}
+          </View>
+        ))}
     </View>
   );
 }
@@ -139,6 +135,9 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 24,
     paddingHorizontal: 16,
+  },
+  group: {
+    marginBottom: 20,
   },
   title: {
     fontSize: 17,
@@ -155,39 +154,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     textAlign: 'center',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    gap: 12,
-  },
-  thumbnail: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: colors.backgroundSubtle,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  thumbnailImage: {
-    width: '100%',
-    height: '100%',
-  },
-  info: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  meta: {
-    marginTop: 2,
-    fontSize: 12,
-    color: colors.textSecondary,
   },
 });
