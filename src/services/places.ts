@@ -123,6 +123,47 @@ export async function searchPlacesByText(
     );
 }
 
+export type PlaceDetails = NearbyPlace & {
+  phoneNumber: string | null;
+  websiteUri: string | null;
+  openingHours: string[] | null;
+  editorialSummary: string | null;
+  priceLevel: string | null;
+};
+
+const DETAILS_FIELD_MASK =
+  'id,displayName,formattedAddress,location,rating,userRatingCount,types,photos,nationalPhoneNumber,websiteUri,regularOpeningHours,editorialSummary,priceLevel';
+
+export async function fetchPlaceDetails(placeId: string): Promise<PlaceDetails> {
+  if (!API_KEY) {
+    throw new Error('MISSING_API_KEY');
+  }
+
+  const response = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
+    headers: {
+      'X-Goog-Api-Key': API_KEY,
+      'X-Goog-FieldMask': DETAILS_FIELD_MASK,
+    },
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`PLACES_API_ERROR: ${response.status} ${body}`);
+  }
+
+  const place = await response.json();
+  const base = mapPlace(place, place.location?.latitude ?? 0, place.location?.longitude ?? 0);
+
+  return {
+    ...base,
+    phoneNumber: place.nationalPhoneNumber ?? null,
+    websiteUri: place.websiteUri ?? null,
+    openingHours: place.regularOpeningHours?.weekdayDescriptions ?? null,
+    editorialSummary: place.editorialSummary?.text ?? null,
+    priceLevel: place.priceLevel ?? null,
+  };
+}
+
 export function distanceInKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
