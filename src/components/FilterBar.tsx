@@ -1,37 +1,88 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '../theme/colors';
+import FilterPickerModal from './FilterPickerModal';
+
+type FilterKey = 'tiempo' | 'presupuesto' | 'conQuien' | 'donde';
 
 const FILTERS: {
-  key: string;
+  key: FilterKey;
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
-  value: string;
+  options: string[];
 }[] = [
-  { key: 'tiempo', icon: 'time-outline', label: 'Tiempo', value: '2 horas' },
-  { key: 'presupuesto', icon: 'cash-outline', label: 'Presupuesto', value: '$ 20.000' },
-  { key: 'conQuien', icon: 'people-outline', label: 'Con quién', value: 'Solo' },
-  { key: 'donde', icon: 'location-outline', label: 'Dónde', value: 'Cerca mío' },
+  {
+    key: 'tiempo',
+    icon: 'time-outline',
+    label: 'Tiempo',
+    options: ['30 min', '1 hora', '2 horas', '3+ horas'],
+  },
+  {
+    key: 'presupuesto',
+    icon: 'cash-outline',
+    label: 'Presupuesto',
+    options: ['Gratis', '$ 10.000', '$ 20.000', '$ 50.000+'],
+  },
+  {
+    key: 'conQuien',
+    icon: 'people-outline',
+    label: 'Con quién',
+    options: ['Solo', 'Pareja', 'Amigos', 'Familia'],
+  },
+  {
+    key: 'donde',
+    icon: 'location-outline',
+    label: 'Dónde',
+    options: ['Cerca mío', 'Toda la ciudad', 'Otra zona'],
+  },
 ];
 
+const DEFAULT_VALUES: Record<FilterKey, string> = {
+  tiempo: '2 horas',
+  presupuesto: '$ 20.000',
+  conQuien: 'Solo',
+  donde: 'Cerca mío',
+};
+
 export default function FilterBar() {
+  const [values, setValues] = useState<Record<FilterKey, string>>(DEFAULT_VALUES);
+  const [activeFilter, setActiveFilter] = useState<FilterKey | null>(null);
+
+  const active = FILTERS.find((filter) => filter.key === activeFilter) ?? null;
+
   return (
     <View style={styles.card}>
       {FILTERS.map((filter, index) => (
-        <View key={filter.key} style={[styles.item, index < FILTERS.length - 1 && styles.divider]}>
+        <Pressable
+          key={filter.key}
+          style={[styles.item, index < FILTERS.length - 1 && styles.divider]}
+          onPress={() => setActiveFilter(filter.key)}
+        >
           <Ionicons name={filter.icon} size={18} color={colors.textPrimary} />
           <Text style={styles.label} numberOfLines={1}>
             {filter.label}
           </Text>
           <View style={styles.valueRow}>
             <Text style={styles.value} numberOfLines={1}>
-              {filter.value}
+              {values[filter.key]}
             </Text>
             <Ionicons name="chevron-down" size={12} color={colors.textSecondary} />
           </View>
-        </View>
+        </Pressable>
       ))}
+
+      {active && (
+        <FilterPickerModal
+          visible={activeFilter !== null}
+          title={active.label}
+          options={active.options}
+          selected={values[active.key]}
+          onSelect={(value) => setValues((prev) => ({ ...prev, [active.key]: value }))}
+          onClose={() => setActiveFilter(null)}
+        />
+      )}
     </View>
   );
 }
