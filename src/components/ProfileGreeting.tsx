@@ -3,14 +3,14 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme/colors';
 
 type ProfileGreetingProps = {
-  name: string;
+  name?: string;
 };
 
 export default function ProfileGreeting({ name }: ProfileGreetingProps) {
   return (
     <View style={styles.container}>
       <View style={styles.textBlock}>
-        <Text style={styles.greeting}>¡Hola, {name}!</Text>
+        <Text style={styles.greeting}>{name ? `¡Hola, ${name}!` : '¡Hola!'}</Text>
         <Text style={styles.question}>¿Qué plan hoy?</Text>
       </View>
       <Image source={require('../assets/avatar-placeholder.png')} style={styles.avatar} />
